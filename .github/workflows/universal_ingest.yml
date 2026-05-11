@@ -17,17 +17,12 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install Dependencies
-        run: pip install requests beautifulsoup4 chromadb sentence-transformers
+        run: pip install -r requirements_rag.txt
       - name: Run Universal Ingester
         run: python universal_ingester.py
-      - name: Commit Progress
+      - name: Commit Data Files
         run: |
           git config user.name 'Nobab_AI_Bot'
           git config user.email 'bot@nobab.ai'
-          git add source_progress.json
-          if git diff --staged --quiet; then
-            echo "ℹ️ No progress update"
-          else
-            git commit -m "📊 Progress update: $(date +%Y-%m-%d)"
-            git push
-          fi
+          git add datasets/raw_*/ source_progress.json
+          if git diff --staged --quiet; then echo "ℹ️ No changes"; else git commit -m "📥 Raw data batch $(date +%Y-%m-%d)" && git push; fi
