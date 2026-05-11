@@ -1,25 +1,30 @@
 #!/usr/bin/env python3
 """
-Nobab_AI Universal Ingester v7.0 — Batch Mode
-প্রতি রানে ৩০০-৪০০ সোর্স প্রসেস করে, পরের রানে বাকিগুলো।
+Nobab_AI Universal Ingester v8.0 — Complete Raw Data Pipeline
+Collection → Cleaning → Chunking → ChromaDB + JSONL Save
+সব ডেটা datasets/raw_<domain>/ ফোল্ডারে JSONL হিসেবেও সেভ হবে।
 """
 
-import os, json, requests, csv, io, time, chromadb
+import os, json, requests, csv, io, time, re, chromadb
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from bs4 import BeautifulSoup
 from chromadb.utils import embedding_functions
 
-BATCH_SIZE = 350
+# ══════════════ কনফিগ ══════════════
+BATCH_SIZE = 200
 PROGRESS_FILE = "source_progress.json"
 CHROMA_PATH = "./chroma_db"
 BATCH_ID = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-HDR = {"User-Agent": "Nobab_AI-Batch/7.0"}
+HDR = {"User-Agent": "Mozilla/5.0 (compatible; Nobab_AI/8.0)"}
 
-# ChromaDB setup
-ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="paraphrase-multilingual-MiniLM-L12-v2")
+# ══════════════ ChromaDB ══════════════
+ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="paraphrase-multilingual-MiniLM-L12-v2"
+)
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 
+# ══════════════ সোর্স লোডার ══════════════
 def load_all_sources():
     all_sources = []
     for fname in ["sources1.json", "sources2.json", "sources3.json"]:
@@ -43,69 +48,109 @@ def save_progress(progress):
 def get_collection(domain):
     return client.get_or_create_collection(name=f"raw_{domain}_knowledge", embedding_function=ef)
 
+# ══════════════ টেক্সট প্রসেসিং ══════════════
+def safe_get(url, timeout=20):
+    try:
+        return requests.get(url, headers=HDR, timeout=timeout, allow_redirects=True)
+    except:
+        return None
+
 def clean_text(raw):
     soup = BeautifulSoup(raw, "html.parser")
-    for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+    for tag in soup(["script", "style", "nav", "footer", "header", "noscript", "aside", "form"]):
         tag.decompose()
     text = soup.get_text(separator="\n")
-    lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 30]
+    lines = [re.sub(r'\s+', ' ', l).strip() for l in text.split("\n")]
+    lines = [l for l in lines if len(l) > 40]
     seen = set()
-    unique = []
-    for l in lines:
-        if l not in seen:
-            seen.add(l)
-            unique.append(l)
+    unique = [l for l in lines if not (l in seen or seen.add(l))]
     return "\n".join(unique)
 
-def chunk_text(text):
+def chunk_text(text, size=400):
+    paragraphs = [p.strip() for p in text.split("\n\n") if len(p.strip()) > 80]
     chunks = []
-    paragraphs = [p.strip() for p in text.split("\n\n") if len(p.strip()) > 50]
     for para in paragraphs:
-        if len(para) <= 500:
+        if len(para) <= size:
             chunks.append(para)
         else:
             sentences = [s.strip() + "." for s in para.replace("\n", " ").split(".") if s.strip()]
-            current = ""
+            cur = ""
             for s in sentences:
-                if len(current) + len(s) <= 500:
-                    current += s + " "
+                if len(cur) + len(s) <= size:
+                    cur += s + " "
                 else:
-                    if current: chunks.append(current.strip())
-                    current = s + " "
-            if current: chunks.append(current.strip())
+                    if cur: chunks.append(cur.strip())
+                    cur = s + " "
+            if cur: chunks.append(cur.strip())
     return chunks
 
+# ══════════════ সোর্স ইনজেস্ট ══════════════
 def ingest_source(src):
     name = src.get("name", "unknown")
     url = src.get("url", "")
     domain = src.get("domain", "cyber")
     stype = src.get("type", "html")
+
     try:
-        r = requests.get(url, headers=HDR, timeout=30)
-        if r.status_code != 200:
-            print(f"  ⚠️ {name}: HTTP {r.status_code}")
+        if stype in ["html", "xml", "github", "zenodo"]:
+            r = safe_get(url)
+            if not r or r.status_code != 200:
+                print(f"  ⚠️ {name}: HTTP {r.status_code if r else 'timeout'}")
+                return 0
+            raw = clean_text(r.text[:80000])
+        elif stype == "json":
+            r = safe_get(url)
+            if not r or r.status_code != 200:
+                print(f"  ⚠️ {name}: HTTP {r.status_code if r else 'timeout'}")
+                return 0
+            raw = json.dumps(r.json(), indent=2)[:80000]
+        elif stype == "csv":
+            r = safe_get(url)
+            if not r or r.status_code != 200:
+                print(f"  ⚠️ {name}: HTTP {r.status_code if r else 'timeout'}")
+                return 0
+            rows = list(csv.DictReader(io.StringIO(r.text)))[:1000]
+            raw = "\n".join([json.dumps(row, ensure_ascii=False) for row in rows])[:80000]
+        else:
             return 0
-        raw = r.text[:50000] if stype == "html" else r.content[:50000].decode("utf-8", errors="ignore")
-        clean = clean_text(raw)
-        chunks = chunk_text(clean)
+
+        if not raw or len(raw) < 150:
+            print(f"  ⚠️ {name}: content too short")
+            return 0
+
+        chunks = chunk_text(raw)
         if not chunks:
             print(f"  ⚠️ {name}: no valid chunks")
             return 0
+
+        # ✅ ChromaDB save
         collection = get_collection(domain)
-        ids = [f"{name.replace(' ', '_')[:50]}_{i}_{BATCH_ID}" for i in range(len(chunks))]
-        metas = [{"source": name, "domain": domain, "chunk": i, "total": len(chunks)} for i in range(len(chunks))]
+        ids = [f"{re.sub(r'[^a-zA-Z0-9]', '_', name)[:50]}_{i}_{BATCH_ID}" for i in range(len(chunks))]
+        metas = [{"source": name, "domain": domain, "chunk": i} for i in range(len(chunks))]
         for i in range(0, len(chunks), 50):
             collection.add(documents=chunks[i:i+50], ids=ids[i:i+50], metadatas=metas[i:i+50])
-        print(f"  ✅ {name}: {len(chunks)} chunks")
+
+        # ✅ JSONL save
+        jsonl_dir = os.path.join("datasets", f"raw_{domain}")
+        os.makedirs(jsonl_dir, exist_ok=True)
+        safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', name)[:60]
+        jsonl_path = os.path.join(jsonl_dir, f"{safe_name}_{BATCH_ID}.jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            for chunk in chunks:
+                f.write(json.dumps({"text": chunk, "source": name, "domain": domain}, ensure_ascii=False) + "\n")
+
+        print(f"  ✅ {name}: {len(chunks)} chunks saved")
         return len(chunks)
+
     except Exception as e:
         print(f"  ❌ {name}: {str(e)[:100]}")
         return 0
 
+# ══════════════ মেইন ══════════════
 def main():
     print(f"╔══════════════════════════════════════╗")
-    print(f"║  Nobab_AI Universal Ingester v7.0  ║")
-    print(f"║  Batch Mode — {BATCH_SIZE}/run      ║")
+    print(f"║  Nobab_AI Universal Ingester v8.0  ║")
+    print(f"║  Raw Text → ChromaDB + JSONL       ║")
     print(f"╚══════════════════════════════════════╝")
     print(f"📅 {datetime.utcnow()}\n")
 
@@ -119,11 +164,11 @@ def main():
     print(f"📋 Total: {len(all_sources)} | Already done: {len(processed_names)} | This batch: {len(batch)}\n")
 
     if not batch:
-        print("✅ All sources already processed! Nothing to do.")
+        print("✅ All sources already processed!")
         return
 
     total_chunks = 0
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=8) as ex:
         futures = {ex.submit(ingest_source, s): s for s in batch}
         for f in as_completed(futures):
             src = futures[f]
@@ -131,7 +176,8 @@ def main():
                 chunks = f.result()
                 total_chunks += chunks
                 progress["processed"].append(src["name"])
-            except: pass
+            except:
+                pass
 
     progress["total_processed"] = len(progress["processed"])
     save_progress(progress)
