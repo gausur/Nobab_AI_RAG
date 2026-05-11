@@ -1,0 +1,1 @@
+{"question": "What is the CIC-Darknet2020 dataset?", "answer": "CIC-Darknet2020 (UNB) is a comprehensive darknet traffic dataset containing labeled flows from Tor, I2P, ZeroNet, Freenet, and VPN traffic. It enables ML-based darknet traffic classification and anomaly detection.", "source": "CIC-Darknet2020 (UNB)", "domain": "darkweb", "category": "traffic-data"}
