@@ -1,19 +1,20 @@
 name: Dark Web Ingester
 on:
   schedule:
-    - cron: "0 */6 * * *"
-  workflow_dispatch:
+    - cron: "0 */6 * * *"   # প্রতি ৬ ঘণ্টা পর
+  workflow_dispatch:         # ম্যানুয়ালি রান করার জন্য
 
 permissions:
-  contents: write
+  contents: write            # গিট পুশের জন্য দরকার
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 30      # নিরাপদ সময়সীমা
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Tor Proxy
         run: |
           sudo apt-get update -qq
@@ -21,16 +22,16 @@ jobs:
           sudo tor &
           sleep 5
 
-      - name: Install Python Deps
+      - name: Install Python Dependencies
         run: pip install requests[socks] chromadb sentence-transformers beautifulsoup4
 
       - name: Run Dark Web Ingester
         run: python darkweb_ingester.py
 
-      - name: Index New Data
+      - name: Index New Data into ChromaDB
         run: python unified_rag.py --index
 
-      - name: Commit & Push
+      - name: Commit & Push New Data
         run: |
           git config user.name 'Nobab_AI_Bot'
           git config user.email 'bot@nobab.ai'
