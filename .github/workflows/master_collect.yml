@@ -1,8 +1,8 @@
 name: Master Dataset Collector
 on:
   schedule:
-    - cron: '0 0 * * 0'   # প্রতি রবিবার রাত ১২টা UTC
-  workflow_dispatch:       # তুই ম্যানুয়ালিও চালাতে পারবি
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 jobs:
   collect:
@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install Dependencies
-        run: pip install requests datasets
+        run: pip install chromadb sentence-transformers requests datasets transformers sentencepiece
       - name: Collect All Datasets
         run: python master_collector.py
       - name: Index New Data
