@@ -1,19 +1,14 @@
-name: Unified RAG
+name: Unified RAG with Cache
 on:
   workflow_dispatch:
     inputs:
       command:
-        description: 'Command: --index or --ask'
+        description: '--index or --ask'
         required: true
-        default: '--index'
+        default: '--ask'
       question:
-        description: 'Your question (for --ask)'
-        required: false
+        description: 'Question'
         default: 'What are the symptoms of myocardial infarction?'
-      domain:
-        description: 'Domain (cyber or medical, leave empty for auto)'
-        required: false
-        default: ''
 
 jobs:
   rag:
@@ -23,18 +18,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install dependencies
-        run: pip install -r requirements_rag.txt
-      - name: Run Unified RAG
+
+      # --- ChromaDB Cache Restore (দ্রুত) ---
+      - name: Restore ChromaDB Cache
+        id: chroma-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ./chroma_db
+          key: chromadb-${{ runner.os }}-${{ hashFiles('datasets/**/*.jsonl') }}
+          restore-keys: chromadb-${{ runner.os }}-
+
+      # --- Python deps ---
+      - name: Install Python Dependencies
+        run: pip install chromadb sentence-transformers requests
+
+      # --- Index only if no cache ---
+      - name: Index Datasets (if no cache)
+        if: ${{ steps.chroma-cache.outputs.cache-hit != 'true' && github.event.inputs.command == '--index' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          if [ "${{ github.event.inputs.command }}" = "--index" ]; then
-            python unified_rag.py --index
-          elif [ "${{ github.event.inputs.command }}" = "--ask" ]; then
-            if [ -z "${{ github.event.inputs.domain }}" ]; then
-              python unified_rag.py --ask "${{ github.event.inputs.question }}"
-            else
-              python unified_rag.py --ask "${{ github.event.inputs.question }}" --domain "${{ github.event.inputs.domain }}"
-            fi
-          fi
+        run: python unified_rag.py --index
+
+      # --- Ask ---
+      - name: Ask Question
+        if: ${{ github.event.inputs.command == '--ask' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: python unified_rag.py --ask "${{ github.event.inputs.question }}"
+
+      # --- ChromaDB Cache Save (invisible post-step) ---
+      - name: Save ChromaDB Cache
+        if: ${{ steps.chroma-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ./chroma_db
+          key: ${{ steps.chroma-cache.outputs.cache-primary-key }}
