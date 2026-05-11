@@ -18,9 +18,14 @@ jobs:
       - name: Setup Tor Proxy
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tor
+          sudo apt-get install -y -qq tor torsocks
           sudo tor &
-          sleep 5
+          # টর পুরোপুরি চালু না হওয়া পর্যন্ত ২৫ সেকেন্ড অপেক্ষা (GitHub Actions-এ বেশি সময় লাগে)
+          sleep 25
+          # টর সঠিকভাবে চালু আছে কিনা চেক
+          echo "Testing Tor connection..."
+          torsocks curl -s -o /dev/null -w "Tor status: %{http_code}\n" http://darkfailllnkf4vf.onion || echo "⚠️ Tor not ready yet"
+          echo "Tor setup complete"
 
       - name: Install Python Dependencies
         run: pip install requests[socks] chromadb sentence-transformers beautifulsoup4
