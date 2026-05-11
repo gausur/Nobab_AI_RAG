@@ -1,0 +1,2 @@
+{"text": "STRING: functional protein association networks Proteins with Values/Ranks - Functional Enrichment Analysis Submit your entire experiment as a list of proteins - no cutoffs. Behind each protein, put a meaningful value for ranking (fold-change, log-pvalue, abundance,. ). Geneset by Pathway / Process / Disease / Publication Search for any pathway name and visualize its proteins as a STRING network.", "source": "STRING", "domain": "medical"}
+{"text": "You can query any identifier or a keyword matching, among others,.", "source": "STRING", "domain": "medical"}
