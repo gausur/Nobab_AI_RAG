@@ -1,4 +1,6 @@
 name: Master Dataset Collector
+permissions:
+  contents: write
 on:
   schedule:
     - cron: '0 0 * * 0'
