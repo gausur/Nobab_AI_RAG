@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Nobab_AI Unified RAG Engine v5.0 — Multilingual (EN + BN)
-Bengali Translator already integrated — no separate step needed
+Bengali Translator already integrated
 """
 
 import os, json, glob, time, chromadb, requests
