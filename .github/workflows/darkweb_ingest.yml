@@ -1,16 +1,16 @@
 name: Dark Web Ingester
 on:
   schedule:
-    - cron: "0 */6 * * *"   # প্রতি ৬ ঘণ্টা পর
-  workflow_dispatch:         # ম্যানুয়ালি রান করার জন্য
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
 permissions:
-  contents: write            # গিট পুশের জন্য দরকার
+  contents: write
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15      # Tor লাগবে না, তাই ১৫ মিনিটই যথেষ্ট
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           git config user.email 'bot@nobab.ai'
           git add datasets/raw_darkweb/
           if git diff --staged --quiet; then
-            echo "ℹ️ কোনো নতুন ডেটা নেই"
+            echo "ℹ️ No new data"
           else
             git commit -m "🌐 Dark web data batch $(date +%Y-%m-%d)"
             git push
