@@ -1,0 +1,40 @@
+name: Unified RAG
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command: --index or --ask'
+        required: true
+        default: '--index'
+      question:
+        description: 'Your question (for --ask)'
+        required: false
+        default: 'What are the symptoms of myocardial infarction?'
+      domain:
+        description: 'Domain (cyber or medical, leave empty for auto)'
+        required: false
+        default: ''
+
+jobs:
+  rag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -r requirements_rag.txt
+      - name: Run Unified RAG
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.command }}" = "--index" ]; then
+            python unified_rag.py --index
+          elif [ "${{ github.event.inputs.command }}" = "--ask" ]; then
+            if [ -z "${{ github.event.inputs.domain }}" ]; then
+              python unified_rag.py --ask "${{ github.event.inputs.question }}"
+            else
+              python unified_rag.py --ask "${{ github.event.inputs.question }}" --domain "${{ github.event.inputs.domain }}"
+            fi
+          fi
