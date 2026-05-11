@@ -1,0 +1,73 @@
+name: Sync Datasets from Sources
+on:
+  schedule:
+    - cron: '0 */6 * * *'          # প্রতি ৬ ঘণ্টায়
+  workflow_dispatch:                # ম্যানুয়ালি চালানোর জন্য
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Create dataset directories
+        run: |
+          mkdir -p datasets/cyber
+          mkdir -p datasets/medical
+
+      - name: Download Cyber-God-Defender datasets
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # API থেকে ফাইল লিস্ট আনা
+          files=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/gausur/Cyber-God-Defender/contents/" \
+            | jq -r '.[].name' | grep ".jsonl$" || true)
+          
+          if [ -z "$files" ]; then
+            echo "⚠️ কোনো JSONL ফাইল পাওয়া যায়নি Cyber-God-Defender-এ"
+          else
+            for f in $files; do
+              echo "📥 ডাউনলোড: $f"
+              curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                "https://raw.githubusercontent.com/gausur/Cyber-God-Defender/main/$f" \
+                -o "datasets/cyber/$f"
+            done
+            echo "✅ Cyber datasets sync done: $(echo "$files" | wc -l) files"
+          fi
+
+      - name: Download Doctor datasets
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          files=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/nabilgr847/Doctor/contents/" \
+            | jq -r '.[].name' | grep ".jsonl$" || true)
+          
+          if [ -z "$files" ]; then
+            echo "⚠️ কোনো JSONL ফাইল পাওয়া যায়নি Doctor-এ"
+          else
+            for f in $files; do
+              echo "📥 ডাউনলোড: $f"
+              curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                "https://raw.githubusercontent.com/nabilgr847/Doctor/main/$f" \
+                -o "datasets/medical/$f"
+            done
+            echo "✅ Medical datasets sync done: $(echo "$files" | wc -l) files"
+          fi
+
+      - name: Commit and push updated datasets
+        run: |
+          git config user.name 'Nobab_AI_Sync_Bot'
+          git config user.email 'sync@nobab.ai'
+          git add datasets/
+          if git diff --staged --quiet; then
+            echo "ℹ️ কোনো নতুন ফাইল নেই, commit skip"
+          else
+            git commit -m "🔄 অটো-সিঙ্ক: datasets আপডেট $(date +'%Y-%m-%d %H:%M')"
+            git push
+            echo "✅ নতুন ডেটাসেট পুশ হয়েছে"
+          fi
