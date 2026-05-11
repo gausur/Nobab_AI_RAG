@@ -1,0 +1,30 @@
+name: Nobab AI Final Master Ingester
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python Dependencies
+        run: pip install requests chromadb sentence-transformers beautifulsoup4
+      - name: Run Master Ingester
+        run: python nobab_master_ingester.py
+      - name: Commit & Push
+        run: |
+          git config user.name 'Nobab_AI_Bot'
+          git config user.email 'bot@nobab.ai'
+          git add datasets/
+          if git diff --staged --quiet; then
+            echo "ℹ️ No new data"
+          else
+            git commit -m "🌐 All-domain raw data batch $(date +%Y-%m-%d)"
+            git push
+          fi
