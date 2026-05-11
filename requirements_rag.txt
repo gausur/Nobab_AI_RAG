@@ -1,6 +1,6 @@
 chromadb
 sentence-transformers
 requests
-numpy
 transformers
 sentencepiece
+beautifulsoup4
