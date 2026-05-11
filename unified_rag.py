@@ -65,7 +65,7 @@ DOMAINS = {
     "raw_darkweb": {
         "collection": "raw_darkweb_knowledge",
         "dataset_dir": "datasets/raw_darkweb",
-        "keywords": ["dark web", "Tor", "onion", "hack", "ransomware leak"]
+        "keywords": ["dark web", "Tor", "onion", "hack", "ransomware leak", "breach", "marketplace"]
     },
 }
 
