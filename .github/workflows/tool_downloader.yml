@@ -21,5 +21,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: darkweb-tools-html
-          path: ~/Nobab_AI/military_tools/darkweb/
+          path: ~/Nobab_AI_RAG/military_tools/darkweb/
           retention-days: 7
