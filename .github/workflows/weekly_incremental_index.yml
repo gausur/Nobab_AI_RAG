@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          token: ${{ secrets.GH_TOKEN }}   # ✅ GH_TOKEN দিয়ে checkout করো
 
       - uses: actions/setup-python@v5
         with:
@@ -27,6 +28,7 @@ jobs:
         with:
           path: ./chroma_db
           key: chromadb-${{ runner.os }}-${{ hashFiles('datasets/**/*.jsonl') }}
+          restore-keys: chromadb-${{ runner.os }}-
 
       - name: Incremental Index New Files
         env:
@@ -34,10 +36,11 @@ jobs:
         run: python incremental_index.py
 
       - name: Save ChromaDB Cache
+        if: ${{ steps.chroma-cache.outputs.cache-hit != 'true' }}   # ✅ আগে cache hit হলে সেভ করবে না
         uses: actions/cache/save@v4
         with:
           path: ./chroma_db
-          key: chromadb-${{ runner.os }}-${{ hashFiles('datasets/**/*.jsonl') }}
+          key: ${{ steps.chroma-cache.outputs.cache-primary-key }}
 
       - name: Commit Updated Tracker
         run: |
