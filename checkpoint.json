@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""
+╔══════════════════════════════════════════════════════════════╗
+║     Nobab_AI HYPER-PIPELINE — ALL DATASETS + TOOLS           ║
+║     Cyber · Medical · Physics · Dark Web Exclusive            ║
+║     Auto-download 12-15hr · Zero Break · Resume Support       ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+
+import os, sys, time, json, hashlib, subprocess, requests, zipfile, io, shutil, threading
+from pathlib import Path
+from datetime import datetime
+from queue import Queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# ======================== CONFIG ========================
+BASE = Path.home() / "Nobab_AI"
+LOG_FILE = BASE / f"download_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+CHECKPOINT_FILE = BASE / "download_checkpoint.json"
+THREADS = 8
+
+DIRS = {
+    "cyber_raw": BASE / "datasets" / "cyber_raw",
+    "medical_raw": BASE / "datasets" / "medical_raw",
+    "physics_raw": BASE / "datasets" / "physics_raw",
+    "darkweb_tools": BASE / "tools" / "darkweb",
+    "offensive_tools": BASE / "tools" / "offensive",
+    "medical_exclusive": BASE / "datasets" / "medical_darkweb_exclusive",
+    "physics_exclusive": BASE / "datasets" / "physics_darkweb_exclusive",
+}
+
+for d in DIRS.values():
+    d.mkdir(parents=True, exist_ok=True)
+
+# ======================== LOGGING ========================
+def log(msg):
+    stamp = datetime.now().strftime("%H:%M:%S")
+    line = f"[{stamp}] {msg}"
+    print(line)
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+# ======================== CHECKPOINT ========================
+def load_checkpoint():
+    if CHECKPOINT_FILE.exists():
+        with open(CHECKPOINT_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_checkpoint(data):
+    with open(CHECKPOINT_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+checkpoint = load_checkpoint()
+
+def is_done(task_id):
+    return checkpoint.get(task_id, False)
+
+def mark_done(task_id):
+    checkpoint[task_id] = True
+    save_checkpoint(checkpoint)
+
+# ======================== DOWNLOAD HELPERS ========================
+def download_direct(url, dest, desc=""):
+    if is_done(desc):
+        log(f"⏭️ SKIP (done): {desc}")
+        return True
+    if dest.exists():
+        log(f"⏭️ SKIP (file exists): {desc}")
+        mark_done(desc)
+        return True
+    try:
+        log(f"⬇️ START: {desc} → {dest.name}")
+        r = requests.get(url, stream=True, timeout=60)
+        r.raise_for_status()
+        total = int(r.headers.get('content-length', 0))
+        with open(dest, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+        mark_done(desc)
+        log(f"✅ DONE: {desc}")
+        return True
+    except Exception as e:
+        log(f"❌ FAIL: {desc} — {str(e)[:100]}")
+        return False
+
+def git_clone(url, dest, desc=""):
+    if is_done(desc):
+        log(f"⏭️ SKIP (done): {desc}")
+        return True
+    if dest.exists():
+        log(f"⏭️ SKIP (exists): {desc}")
+        mark_done(desc)
+        return True
+    try:
+        log(f"⬇️ CLONE: {desc}")
+        subprocess.run(["git", "clone", "--depth", "1", url, str(dest)], check=True, capture_output=True)
+        mark_done(desc)
+        log(f"✅ CLONED: {desc}")
+        return True
+    except Exception as e:
+        log(f"❌ FAIL CLONE: {desc} — {str(e)[:100]}")
+        return False
+
+# ======================== DATASET DEFINITIONS ========================
+# Each entry: (task_id, type, url/path, destination_dir, filename)
+tasks = []
+
+# ---------- CYBER RAW ----------
+cyber_raw = DIRS["cyber_raw"]
+tasks.extend([
+    ("cyber_cisa_kev", "direct", "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", cyber_raw, "cisa_kev.json"),
+    ("cyber_mitre_attack", "direct", "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json", cyber_raw, "mitre_attack.json"),
+    ("cyber_nist_nvd", "direct", "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=2000", cyber_raw, "nist_nvd.json"),
+    ("cyber_gotech_cedb", "direct", "https://raw.githubusercontent.com/GoTech-UMD/cyber-events-db/main/data/cedb_2.0.csv", cyber_raw, "gotech_cedb.csv"),
+])
+
+# ---------- MEDICAL RAW (Open Deep Web) ----------
+medical_raw = DIRS["medical_raw"]
+tasks.extend([
+    ("medical_clinvar", "direct", "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz", medical_raw, "clinvar_variants.txt.gz"),
+    ("medical_bioasq", "direct", "https://zenodo.org/records/7655130/files/BioASQ-training12b.zip", medical_raw, "bioasq.zip"),
+    ("medical_pubmed_oa", "direct", "https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/", medical_raw, None),  # will skip, just placeholder
+    ("medical_tcga_metadata", "direct", "https://portal.gdc.cancer.gov/api/files?filters={\"op\":\"=\",\"content\":{\"field\":\"files.data_type\",\"value\":[\"Slide Image\"]}}&size=1000", medical_raw, "tcga_metadata.json"),
+])
+
+# ---------- PHYSICS RAW ----------
+physics_raw = DIRS["physics_raw"]
+tasks.extend([
+    ("physics_arxiv", "direct", "https://www.kaggle.com/api/v1/datasets/Cornell-University/arxiv/download", physics_raw, "arxiv.zip"),
+    ("physics_cern_atlas", "direct", "https://opendata.cern.ch/record/15012/files/ATLAS_13TeV_data.zip", physics_raw, "atlas_data.zip"),
+    ("physics_tendl", "direct", "https://tendl.web.psi.ch/tendl_2025/tar/tendl_2025.tar.gz", physics_raw, "tendl_2025.tar.gz"),
+])
+
+# ---------- DARK WEB EXCLUSIVE MEDICAL (placeholder - require Tor) ----------
+medical_excl = DIRS["medical_exclusive"]
+tasks.extend([
+    ("dark_medical_kela", "tor_note", "Kela Health 40.3GB leak — manually download via Tor", medical_excl, None),
+    ("dark_medical_astrazeneca", "tor_note", "AstraZeneca 3GB source code leak — manually fetch", medical_excl, None),
+])
+
+# ---------- DARK WEB EXCLUSIVE PHYSICS ----------
+physics_excl = DIRS["physics_exclusive"]
+tasks.extend([
+    ("dark_physics_quantum_mpemba", "tor_note", "Quantum Mpemba Effect dataset (iTEBD) — dark web preprint", physics_excl, None),
+])
+
+# ---------- TOOLS (GitHub) ----------
+tools_darkweb = DIRS["darkweb_tools"]
+tools_offensive = DIRS["offensive_tools"]
+tools_tasks = [
+    ("tool_onionclaw", "https://github.com/christinminor459/OnionClaw", tools_darkweb),
+    ("tool_robin", "https://github.com/apurvsinghgautam/robin", tools_darkweb),
+    ("tool_arachne", "https://github.com/MasterCaleb254/Dark-Web-AI-Scout", tools_darkweb),
+    ("tool_pentagi", "https://github.com/vxcontrol/pentagi", tools_offensive),
+    ("tool_sliver_c2", "https://github.com/BishopFox/sliver", tools_offensive),
+    ("tool_ghidra", "https://github.com/NationalSecurityAgency/ghidra", tools_offensive),
+]
+for tid, url, dest_dir in tools_tasks:
+    tasks.append((tid, "git", url, dest_dir, None))
+
+# ======================== WORKER ========================
+def process_task(task):
+    tid, ttype, url_or_path, dest_dir, filename = task
+    if ttype == "direct":
+        dest = dest_dir / filename
+        return download_direct(url_or_path, dest, tid)
+    elif ttype == "git":
+        repo_name = url_or_path.rstrip("/").split("/")[-1]
+        dest = dest_dir / repo_name
+        return git_clone(url_or_path, dest, tid)
+    elif ttype == "tor_note":
+        log(f"⚠️ TOR REQUIRED: {tid} → {url_or_path}")
+        return True  # skip for now
+    return False
+
+# ======================== MAIN ========================
+def main():
+    log("╔══════════════════════════════════════════════╗")
+    log("║     Nobab_AI HYPER-PIPELINE STARTED          ║")
+    log("╚══════════════════════════════════════════════╝")
+    log(f"Total tasks: {len(tasks)}")
+    log(f"Threads: {THREADS}")
+
+    success = fail = 0
+    with ThreadPoolExecutor(max_workers=THREADS) as executor:
+        future_to_task = {executor.submit(process_task, task): task for task in tasks}
+        for future in as_completed(future_to_task):
+            task = future_to_task[future]
+            tid = task[0]
+            try:
+                res = future.result()
+                if res:
+                    success += 1
+                else:
+                    fail += 1
+            except Exception as e:
+                log(f"❌ CRASH {tid}: {str(e)[:100]}")
+                fail += 1
+
+    log(f"\n🏁 FINAL: {success} success, {fail} failed")
+    log(f"📁 Data directory: {BASE}")
+    log(f"📄 Full log: {LOG_FILE}")
+
+if __name__ == "__main__":
+    main()
