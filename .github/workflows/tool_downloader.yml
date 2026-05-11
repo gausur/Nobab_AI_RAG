@@ -1,0 +1,25 @@
+name: Military Tool Downloader
+on:
+  workflow_dispatch:   # ম্যানুয়ালি চালানোর জন্য
+  # schedule: [{cron: "0 0 * * 0"}]  # চাইলে প্রতি রবিবার অটো
+
+jobs:
+  download-tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python Dependencies
+        run: pip install requests
+
+      - name: Run Tool Downloader
+        run: python nobab_tool_downloader.py
+
+      - name: Upload Dark Web HTML as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: darkweb-tools-html
+          path: ~/Nobab_AI/military_tools/darkweb/
+          retention-days: 7
