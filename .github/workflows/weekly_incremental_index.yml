@@ -1,4 +1,6 @@
 name: Weekly Incremental Index
+permissions:
+  contents: write
 on:
   schedule:
     - cron: '0 0 * * 0'   # প্রতি রবিবার রাত ০০:০০ UTC
