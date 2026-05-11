@@ -2,14 +2,13 @@ name: RAG Index & Test
 on:
   workflow_dispatch:
     inputs:
-      command:
-        description: 'Command: --index or --ask'
-        required: true
-        default: '--index'
       question:
-        description: 'Your question (only for --ask)'
+        description: 'Your question'
+        required: true
+      dataset_files:
+        description: 'Dataset files to index (e.g., H.jsonl or *.jsonl)'
         required: false
-        default: ''
+        default: 'H.jsonl'
 
 jobs:
   rag:
@@ -21,13 +20,11 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: pip install -r requirements_rag.txt
-      - name: Run Index
-        if: ${{ github.event.inputs.command == '--index' }}
+      - name: Index Dataset
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python cyber_rag.py --index
-      - name: Run Ask
-        if: ${{ github.event.inputs.command == '--ask' }}
+        run: python cyber_rag.py --index "${{ github.event.inputs.dataset_files }}"
+      - name: Ask Question
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: python cyber_rag.py --ask "${{ github.event.inputs.question }}"
