@@ -1,0 +1,41 @@
+name: Nobab AI Full Pipeline (Human Particle + RAG)
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'   # প্রতি ১২ ঘণ্টায় চালাবে
+  workflow_dispatch:         # ম্যানুয়ালি রান করানোর সুযোগ
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements_human.txt
+
+    - name: Fetch Human Particle Data (GenBank, PDB, PubChem, STRING)
+      run: python human_fetcher.py
+
+    - name: Index data to ChromaDB
+      run: python human_indexer.py
+
+    - name: Test RAG with a sample question
+      run: echo "BRCA1 gene এর প্রোটিন স্ট্রাকচার কী?" | python human_rag.py
+
+    - name: Upload ChromaDB and datasets as artifact (optional)
+      uses: actions/upload-artifact@v4
+      with:
+        name: nobab_human_data
+        path: |
+          ./chroma_human_db
+          ./datasets/human_particle
