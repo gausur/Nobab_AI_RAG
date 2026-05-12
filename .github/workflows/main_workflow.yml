@@ -1,61 +1,30 @@
-lname: Nobab AI Human Particle Auto-Push
+name: Nobab AI All Human Sources
 
 on:
   schedule:
-    - cron: '*/5 * * * *'        # প্রতি 5 মিনিটে রান হবে
-  workflow_dispatch:              # ম্যানুয়ালেও চালাতে পারবেন
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write                  # push করার অনুমতি
+  contents: write
 
 jobs:
-  fetch-and-push:
+  fetch-push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
+      - uses: actions/checkout@v4
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install tqdm
-
-      - name: Fetch GenBank data
-        run: |
-          python - <<EOF
-import os, json, gzip, ftplib
-from tqdm import tqdm
-
-os.makedirs("datasets/human_particle", exist_ok=True)
-out_file = "datasets/human_particle/genbank.jsonl"
-ftp = ftplib.FTP("ftp.ncbi.nlm.nih.gov")
-ftp.login()
-ftp.cwd("/genbank")
-files = ftp.nlst("*.seq.gz")[:10]   # 10 টি ফাইল, বাড়াতে পারেন
-with open(out_file, "w") as out:
-    for fname in tqdm(files):
-        local = fname
-        with open(local, "wb") as lf:
-            ftp.retrbinary(f"RETR {fname}", lf.write)
-        with gzip.open(local, "rt") as gz:
-            data = gz.read(1500)
-        rec = {"source": "genbank", "id": fname, "text": data, "type": "dna"}
-        out.write(json.dumps(rec) + "\n")
-        os.remove(local)
-ftp.quit()
-print("GenBank data fetched and saved to datasets/human_particle/genbank.jsonl")
-EOF
-
-      - name: Commit and push changes
+        run: pip install tqdm requests biopython
+      - name: Run fetcher
+        run: python human_fetcher.py
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "actions@github.com"
           git add datasets/human_particle/
-          git diff --staged --quiet || git commit -m "Auto-update human particle data $(date -u '+%Y-%m-%d %H:%M:%S')"
+          git diff --staged --quiet || git commit -m "Auto update $(date -u '+%Y-%m-%d %H:%M:%S')"
           git push
