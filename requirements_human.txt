@@ -6,4 +6,3 @@ tqdm>=4.66.0
 openai>=1.0.0
 wget>=3.2
 biopython>=1.79
-ftplib
