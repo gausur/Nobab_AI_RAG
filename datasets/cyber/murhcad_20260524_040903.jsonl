@@ -1,0 +1,1 @@
+{"question": "What is the MURHCAD honeypot dataset?", "answer": "MURHCAD collected 132,425 attack events over 72 hours from 3 honeypots (Cowrie, Dionaea, SentryPeer) across 4 Azure VMs, with 2,438 unique IPs from 95 countries.", "source": "MURHCAD (Perdana Univ)", "category": "honeypot"}
