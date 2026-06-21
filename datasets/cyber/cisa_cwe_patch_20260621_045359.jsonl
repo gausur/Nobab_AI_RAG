@@ -1,0 +1,1 @@
+{"question": "What is the CIRCL vulnerability CWE patch dataset?", "answer": "The CIRCL dataset on HuggingFace contains real-world vulnerability patches enriched with CWE identifiers from GitHub, GitLab, and Bitbucket, supporting vulnerability classification tool development.", "source": "CIRCL/CWE-Patch", "category": "vulnerability"}
