@@ -1,5 +1,17 @@
-{"question": "What is the difference between a gene and a genome?", "answer": "A gene is a unit of heredity that carries information from one generation to the next, while a genome is the complete set of genes in an organism's DNA.", "source": "DevToolBox"}
-{"question": "What is the process of DNA replication?", "answer": "DNA replication is the process by which a cell makes an exact copy of its DNA before cell division.\n\n**Genetics**", "source": "DevToolBox"}
-{"question": "What is genetic inheritance?", "answer": "Genetic inheritance refers to the passing of traits from parents to offspring through the transmission of genetic information.", "source": "DevToolBox"}
-{"question": "What is the difference between a dominant and recessive allele?", "answer": "A dominant allele will always be expressed if an individual has one copy, while a recessive allele will only be expressed if an individual has two copies.\n\n**Cancer**", "source": "DevToolBox"}
-{"question": "What is cancer?", "answer": "", "source": "DevToolBox"}
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>503 first byte timeout</title>
+  </head>
+  <body>
+    <h1>Error 503 first byte timeout</h1>
+    <p>first byte timeout</p>
+    <h3>Error 54113</h3>
+    <p>Details: cache-dfw-kdfw8210095-DFW 1784900733 3346049641</p>
+    <hr>
+    <p>Varnish cache server</p>
+  </body>
+</html>
