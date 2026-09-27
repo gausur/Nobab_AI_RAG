@@ -1,0 +1,1 @@
+{"question": "What is the vIoT-DDoS-2025 dataset?", "answer": "vIoT-DDoS-2025 contains 168 hours of IoT network traffic with 15.2M packets including 20 DDoS attack scenarios: SYN flood, UDP flood, ICMP flood, HTTP flood, Slowloris, DNS amplification, and more.", "source": "vIoT-DDoS-2025 (Southampton)", "category": "ddos"}
