@@ -1,0 +1,1 @@
+{"question": "What is the IDS2025 Balanced dataset?", "answer": "IDS2025 Balanced improves on CICIDS2017 with ~2.83M records covering DoS/DDoS, Brute Force, XSS, SQLi, Botnet, Heartbleed attacks with balanced class distribution.", "source": "IDS2025 Balanced", "category": "ids"}
