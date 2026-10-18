@@ -1,0 +1,5 @@
+{"question": "What is BCCC-IoT-IDS-Zwave-2025?", "answer": "1 billion records, 20 TB IoT intrusion detection dataset with Z-Wave protocol data from York University's BCCC lab.", "source": "BCCC (York Univ)", "category": "iot"}
+{"question": "What is BCCC-DarkNet-2025?", "answer": "Encrypted darknet traffic dataset for classification and threat detection from York University.", "source": "BCCC DarkNet", "category": "dark-web"}
+{"question": "What is BCCC-MalMem-SnapLog-2025?", "answer": "Malware memory snapshot and log dataset for behavioral malware analysis.", "source": "BCCC MalMem", "category": "malware"}
+{"question": "What is BCCC-DeFiFraudTrans-2025?", "answer": "1 million DeFi fraud transaction dataset for blockchain security research.", "source": "BCCC DeFi", "category": "blockchain"}
+{"question": "What is BCCC-SCsVul-2025?", "answer": "110,000 Solidity smart contract vulnerability dataset for Web3 security.", "source": "BCCC Smart Contract", "category": "blockchain"}
