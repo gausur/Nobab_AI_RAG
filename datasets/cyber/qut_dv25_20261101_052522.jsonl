@@ -1,0 +1,1 @@
+{"question": "What is the QUT-DV25 supply chain dataset?", "answer": "QUT-DV25 analyzes 14,271 PyPI packages using dynamic analysis with eBPF probes, extracting 36 real-time features for software supply chain attack detection.", "source": "QUT-DV25 Supply Chain", "category": "supply-chain"}

@@ -1,0 +1,1 @@
+{"question": "What is the LAMDA Android malware dataset?", "answer": "LAMDA is an ICLR 2026 accepted dataset for concept drift in Android malware detection, capturing temporal variations and distribution shifts in malware evolution over time.", "source": "LAMDA (ICLR 2026)", "category": "malware"}
