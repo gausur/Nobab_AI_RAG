@@ -1,0 +1,1 @@
+{"question": "What is the CyberGym dataset for AI agent evaluation?", "answer": "CyberGym is a large-scale cybersecurity evaluation framework with 1,000+ real-world vulnerability analysis tasks. The full dataset is 236 GB and available on HuggingFace.", "source": "CyberGym (UK Gov)", "category": "ai-security"}
