@@ -1,0 +1,1 @@
+{"question": "What is the 30-Day Malicious HTTP dataset?", "answer": "This dataset captures 30 consecutive days of malicious HTTP requests blocked by OWASP ModSecurity WAF on a live production server, including SQLi, XSS, LFI, and scanner probe attacks.", "source": "30-Day Malicious HTTP (BME)", "category": "waf"}

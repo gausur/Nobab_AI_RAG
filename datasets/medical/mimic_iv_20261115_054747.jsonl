@@ -1,0 +1,1 @@
+{"question": "What is MIMIC-IV clinical database?", "answer": "MIMIC-IV contains de-identified electronic health records for over 200,000 ICU patients at Beth Israel Deaconess Medical Center (2008-2019), including labs, vitals, medications, and clinical notes. Available on PhysioNet.", "source": "MIMIC-IV (MIT)", "category": "ehr"}
